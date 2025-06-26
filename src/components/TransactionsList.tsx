@@ -10,27 +10,52 @@ import { format } from 'date-fns';
 import { X } from 'lucide-react';
 
 export const TransactionsList = () => {
-  const transactions = useTransactionsStore((state) => state.getFilteredTransactions());
+  const allTransactions = useTransactionsStore((state) => state.transactions);
   const filters = useTransactionsStore((state) => state.filters);
   const setFilters = useTransactionsStore((state) => state.setFilters);
   const removeTransaction = useTransactionsStore((state) => state.removeTransaction);
   const categories = useCategoriesStore((state) => state.categories);
+
+  // Filter transactions based on current filters
+  const filteredTransactions = allTransactions.filter((transaction) => {
+    if (filters.type && filters.type !== 'all' && transaction.type !== filters.type) {
+      return false;
+    }
+    
+    if (filters.category && transaction.category !== filters.category) {
+      return false;
+    }
+    
+    return true;
+  });
 
   const getCategoryColor = (categoryName: string) => {
     const category = categories.find((cat) => cat.name === categoryName);
     return category?.color || '#6b7280';
   };
 
+  const handleTypeFilter = (value: string) => {
+    setFilters({ 
+      ...filters, 
+      type: value === 'all' ? 'all' : value as 'income' | 'expense' | 'all'
+    });
+  };
+
+  const handleCategoryFilter = (value: string) => {
+    setFilters({ 
+      ...filters, 
+      category: value === 'all' ? undefined : value 
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Recent Transactions</CardTitle>
-        <div className="flex gap-4">
+        <div className="flex gap-4 flex-wrap">
           <Select
             value={filters.type || 'all'}
-            onValueChange={(value) => 
-              setFilters({ ...filters, type: value === 'all' ? undefined : value as 'income' | 'expense' })
-            }
+            onValueChange={handleTypeFilter}
           >
             <SelectTrigger className="w-40">
               <SelectValue />
@@ -44,9 +69,7 @@ export const TransactionsList = () => {
 
           <Select
             value={filters.category || 'all'}
-            onValueChange={(value) => 
-              setFilters({ ...filters, category: value === 'all' ? undefined : value })
-            }
+            onValueChange={handleCategoryFilter}
           >
             <SelectTrigger className="w-48">
               <SelectValue placeholder="All Categories" />
@@ -70,10 +93,10 @@ export const TransactionsList = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-3 max-h-96 overflow-y-auto">
-          {transactions.length === 0 ? (
+          {filteredTransactions.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No transactions found</p>
           ) : (
-            transactions.map((transaction) => (
+            filteredTransactions.map((transaction) => (
               <div
                 key={transaction.id}
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
